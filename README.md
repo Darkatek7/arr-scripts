@@ -11,6 +11,10 @@ A collection of scripts related to the *arrs (Radarr, Sonarr, etc.), Usenet (SAB
 Generates a list of recently released media (last 30 days) and formats it for [Jellyfin Media Bar](https://github.com/MakD/Jellyfin-Media-Bar).  
 Script: [`create_featured_list.sh`](./jellyfin/Featured%20Content/create_featured_list.sh)
 
+#### Example:
+![image](https://github.com/user-attachments/assets/141f6da5-b238-4721-b7b8-e395d2fbbaae)
+
+
 ### 🔹 [Sonarr](./sonarr/)
 
 Scripts related to managing Sonarr, like removing stuck download queues.  
