@@ -26,8 +26,8 @@ These are **stuck in the queue** and can optionally be **automatically removed**
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/sonarr-queue-cleaner.git
-cd sonarr-queue-cleaner
+git clone https://github.com/darkatek7/arr-scripts.git
+cd sonarr
 ```
 
 ### 2. Configure the Script
