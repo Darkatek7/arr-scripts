@@ -13,11 +13,13 @@ Script: [`create_featured_list.sh`](./jellyfin/Featured%20Content/create_feature
 
 ### 🔹 [Sonarr](./sonarr/)
 
-Scripts related to managing Sonarr, like removing stuck download queues.
+Scripts related to managing Sonarr, like removing stuck download queues.  
+Script: [`clear_queue.sh`](./sonarr/clear_queue.sh)
 
 ### 🔹 [Radarr](./radarr/)
 
-Scripts related to managing Radarr, like removing stuck download queues.
+Scripts related to managing Radarr, like removing stuck download queues.  
+Script: [`clear_queue.sh`](./radarr/clear_queue.sh)
 
 ---
 
