@@ -63,8 +63,7 @@ fi
 
 echo "Checking for stuck queue items..."
 
-# Loop through each record
-echo "$queue" | jq -c '.records[]' | while read -r item; do
+while read -r item; do
   id=$(echo "$item" | jq -r '.id')
   title=$(echo "$item" | jq -r '.title')
   timeleft=$(echo "$item" | jq -r '.timeleft')
@@ -74,7 +73,6 @@ echo "$queue" | jq -c '.records[]' | while read -r item; do
   status_message=$(echo "$item" | jq -r '.statusMessages[0].messages[0]')
   output_path=$(echo "$item" | jq -r '.outputPath')
 
-  # Conditions for stuck: completed, 0 timeleft, importPending or warning, and message about no importable files
   if [[ "$status" == "completed" && "$timeleft" == "00:00:00" && ( "$tracked_status" == "warning" || "$download_state" == "importPending" ) && "$status_message" == *"No files found"* ]]; then
     STUCK_ITEMS_FOUND=true
 
@@ -93,8 +91,9 @@ echo "$queue" | jq -c '.records[]' | while read -r item; do
       echo "Response code: $response"
     fi
   fi
-done
+done < <(echo "$queue" | jq -c '.records[]')
 
 if [ "$STUCK_ITEMS_FOUND" = false ]; then
   echo "No stuck items found."
 fi
+
