@@ -94,3 +94,8 @@ echo "$queue" | jq -c '.records[]' | while read -r item; do
     fi
   fi
 done
+
+# If no stuck items were found, print the message
+if [ "$STUCK_ITEMS_FOUND" = false ]; then
+  echo "No stuck items found."
+fi
