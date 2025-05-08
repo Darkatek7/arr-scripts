@@ -52,3 +52,28 @@ The script will:
 * Detect and remove stuck downloads after failed imports
 
 Run this script via a crontab scheduled to run every 1 hour and you won't have to worry about stuck downloads again.
+
+---
+
+#### Sample output:
+```bash
+bash clear_queue.sh 
+Checking for stuck queue items...
+⚠️  Stuck item detected:
+  ID: 15595483
+  Title: Stuck-Item
+  Output Path: /downloads/Stuck-Item/
+  Message: No files found are eligible for import in /downloads/Stuck-Item/
+
+Deleting stuck item ID: 15595483...
+Response code: 200
+```
+
+Explanation:
+* ⚠️ Stuck item detected: The script identifies an item that is stuck (completed with no valid files for import).
+* ID: The unique identifier of the stuck item.
+* Title: The title of the episode or download.
+* Output Path: The location where the download resides.
+* Message: A description explaining why the item is stuck (e.g., "No files found are eligible for import").
+* Deleting stuck item: The script deletes the item from the queue.
+* Response code: Indicates the status of the deletion (200 means success).
