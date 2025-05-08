@@ -33,6 +33,7 @@ API_KEY="key"
 
 # Default mode is delete (not dry-run)
 DRY_RUN=false
+STUCK_ITEMS_FOUND=false  # Flag to track if any stuck items are found
 
 # Function to fetch the queue
 fetch_queue() {
@@ -76,6 +77,9 @@ echo "$queue" | jq -c '.records[]' | while read -r item; do
 
   # Conditions for stuck: completed, 0 timeleft, importPending or warning, and status message mentions no importable file
   if [[ "$status" == "completed" && "$timeleft" == "00:00:00" && ( "$tracked_status" == "warning" || "$download_state" == "importPending" ) && "$status_message" == *"No files found"* ]]; then
+    # Set flag that stuck items are found
+    STUCK_ITEMS_FOUND=true
+
     echo "⚠️  Stuck item detected:"
     echo "  ID: $id"
     echo "  Title: $title"
