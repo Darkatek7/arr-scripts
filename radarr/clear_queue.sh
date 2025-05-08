@@ -1,79 +1,100 @@
-# 🧹 Radarr Queue Cleaner
+#!/bin/bash
+#
+# 🧹 Radarr Queue Stuck Item Cleaner
+#
+# This script connects to the Radarr API and checks the download queue for items that are
+# stuck after a failed import. These are typically downloads that:
+#   - Have `status: completed`
+#   - Show `timeleft: 00:00:00` (fully downloaded)
+#   - Have `trackedDownloadStatus: warning` OR `trackedDownloadState: importPending`
+#   - Include a status message such as "No files found"
+#
+# Such items are likely completed downloads that Radarr failed to import (e.g., missing or moved files).
+# The script identifies these stuck queue items and automatically deletes them from the queue using:
+#   DELETE /api/v3/queue/{id}
+#
+# ⚠️ Deletion is ENABLED by default. To disable it, comment out the deletion lines.
+#
+# Requirements:
+#   - bash
+#   - curl
+#   - jq
+#
+# Usage:
+#   - Configure RADARR_URL and API_KEY below
+#   - Run manually: `bash clear_radarr_queue.sh`
+#   - Run manually: `bash clear_radarr_queue.sh --dry-run` to perform a dry run
+#   - Or schedule with cron to run automatically
+#
 
-This Bash script helps maintain a clean and healthy Radarr download queue by automatically detecting and optionally removing **stuck** queue items that Radarr fails to clear on its own.
+# Radarr settings
+RADARR_URL="http://localhost:7878"
+API_KEY="your_radarr_api_key_here"
 
----
+# Default mode is delete (not dry-run)
+DRY_RUN=false
+STUCK_ITEMS_FOUND=false  # Flag to track if any stuck items are found
 
-## 🔍 What It Does
+# Function to fetch the queue
+fetch_queue() {
+  curl -s -H "X-Api-Key: $API_KEY" "$RADARR_URL/api/v3/queue"
+}
 
-The script performs one main cleanup operations:
+# Parse arguments
+for arg in "$@"; do
+  case $arg in
+    --dry-run)
+      DRY_RUN=true
+      ;;
+    *)
+      echo "Unknown argument: $arg"
+      exit 1
+      ;;
+  esac
+done
 
-### 1. Stuck Downloads After Import Failure
+# Fetch queue
+queue=$(fetch_queue)
 
-Detects downloads that:
-- Are marked as `completed`
-- Have `timeleft: 00:00:00`
-- Are stuck with `trackedDownloadStatus: warning` or `importPending`
-- Show errors like:  
-  `"No files found are eligible for import"`
+if [[ -z "$queue" || "$queue" == "null" ]]; then
+  echo "Failed to fetch the queue or the queue is empty."
+  exit 1
+fi
 
-These are **stuck in the queue** and can optionally be **automatically removed**.
+echo "Checking for stuck queue items..."
 
----
+# Loop through each record
+echo "$queue" | jq -c '.records[]' | while read -r item; do
+  id=$(echo "$item" | jq -r '.id')
+  title=$(echo "$item" | jq -r '.title')
+  timeleft=$(echo "$item" | jq -r '.timeleft')
+  status=$(echo "$item" | jq -r '.status')
+  tracked_status=$(echo "$item" | jq -r '.trackedDownloadStatus')
+  download_state=$(echo "$item" | jq -r '.trackedDownloadState')
+  status_message=$(echo "$item" | jq -r '.statusMessages[0].messages[0]')
+  output_path=$(echo "$item" | jq -r '.outputPath')
 
-## 🚀 Usage Instructions
+  # Conditions for stuck: completed, 0 timeleft, importPending or warning, and message about no importable files
+  if [[ "$status" == "completed" && "$timeleft" == "00:00:00" && ( "$tracked_status" == "warning" || "$download_state" == "importPending" ) && "$status_message" == *"No files found"* ]]; then
+    STUCK_ITEMS_FOUND=true
 
-### 1. Clone the Repository
+    echo "⚠️  Stuck item detected:"
+    echo "  ID: $id"
+    echo "  Title: $title"
+    echo "  Output Path: $output_path"
+    echo "  Message: $status_message"
+    echo ""
 
-```bash
-git clone https://github.com/darkatek7/arr-scripts.git
-cd radarr
-```
+    if [ "$DRY_RUN" = true ]; then
+      echo "This item would be deleted in delete mode."
+    else
+      echo "Deleting stuck item ID: $id..."
+      response=$(curl -s -w "%{http_code}" -o /dev/null -X DELETE -H "X-Api-Key: $API_KEY" "$RADARR_URL/api/v3/queue/$id")
+      echo "Response code: $response"
+    fi
+  fi
+done
 
-### 2. Configure the Script
-Edit the clear_queue.sh file:
- ```bash
-RADARR_URL="http://localhost:8989"
-API_KEY="your_radarr_api_key"
-```
-
-### 3. Run the Script Manually
-```bash
-bash clear_queue.sh
-```
-
-_optional:_ perform a dry run to see what would be deleted without actually deleting the items.
-```bash
-bash clear_queue.sh --dry-run
-```
-
-The script will:
-* List and remove duplicate episodes from the queue
-* Detect and remove stuck downloads after failed imports
-
-Run this script via a crontab scheduled to run every 1 hour and you won't have to worry about stuck downloads again.
-
----
-
-#### Sample output:
-```bash
-bash clear_queue.sh 
-Checking for stuck queue items...
-⚠️  Stuck item detected:
-  ID: 15595483
-  Title: Stuck-Item
-  Output Path: /downloads/Stuck-Item/
-  Message: No files found are eligible for import in /downloads/Stuck-Item/
-
-Deleting stuck item ID: 15595483...
-Response code: 200
-```
-
-Explanation:
-* ⚠️ Stuck item detected: The script identifies an item that is stuck (completed with no valid files for import).
-* ID: The unique identifier of the stuck item.
-* Title: The title of the episode or download.
-* Output Path: The location where the download resides.
-* Message: A description explaining why the item is stuck (e.g., "No files found are eligible for import").
-* Deleting stuck item: The script deletes the item from the queue.
-* Response code: Indicates the status of the deletion (200 means success).
+if [ "$STUCK_ITEMS_FOUND" = false ]; then
+  echo "No stuck items found."
+fi
