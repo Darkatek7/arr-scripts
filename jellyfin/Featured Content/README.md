@@ -48,6 +48,8 @@ Output the results to:
 ```
 This output file is automatically read by the Jellyfin Media Bar.
 
+Run this script via a crontab scheduled to run every 1 day and you will have a nice and organized media bar every day.
+
 ## Example Output (list.txt)
 ```nginx
 Releases in the past 30 days
