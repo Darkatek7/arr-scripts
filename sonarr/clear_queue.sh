@@ -64,8 +64,8 @@ fi
 
 echo "Checking for stuck queue items..."
 
-# Loop through each record
-echo "$queue" | jq -c '.records[]' | while read -r item; do
+# Loop through each record (using process substitution to avoid subshell issues)
+while read -r item; do
   id=$(echo "$item" | jq -r '.id')
   title=$(echo "$item" | jq -r '.title')
   timeleft=$(echo "$item" | jq -r '.timeleft')
@@ -77,7 +77,6 @@ echo "$queue" | jq -c '.records[]' | while read -r item; do
 
   # Conditions for stuck: completed, 0 timeleft, importPending or warning, and status message mentions no importable file
   if [[ "$status" == "completed" && "$timeleft" == "00:00:00" && ( "$tracked_status" == "warning" || "$download_state" == "importPending" ) && "$status_message" == *"No files found"* ]]; then
-    # Set flag that stuck items are found
     STUCK_ITEMS_FOUND=true
 
     echo "⚠️  Stuck item detected:"
@@ -88,16 +87,14 @@ echo "$queue" | jq -c '.records[]' | while read -r item; do
     echo ""
 
     if [ "$DRY_RUN" = true ]; then
-      # In dry-run mode, just print what would be deleted
       echo "This item would be deleted in delete mode."
     else
-      # In delete mode, actually delete the item
       echo "Deleting stuck item ID: $id..."
       response=$(curl -s -w "%{http_code}" -o /dev/null -X DELETE -H "X-Api-Key: $API_KEY" "$SONARR_URL/api/v3/queue/$id")
       echo "Response code: $response"
     fi
   fi
-done
+done < <(echo "$queue" | jq -c '.records[]')
 
 # If no stuck items were found, print the message
 if [ "$STUCK_ITEMS_FOUND" = false ]; then
