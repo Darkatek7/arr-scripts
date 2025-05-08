@@ -1,13 +1,57 @@
 #!/bin/bash
+#
+# 🧹 Sonarr Queue Stuck Item Cleaner
+#
+# This script connects to the Sonarr API and checks the download queue for items that are
+# stuck after a failed import. These are typically downloads that:
+#   - Have `status: completed`
+#   - Show `timeleft: 00:00:00` (fully downloaded)
+#   - Have `trackedDownloadStatus: warning` OR `trackedDownloadState: importPending`
+#   - Include a status message such as "No files found"
+#
+# Such items are likely completed downloads that Sonarr failed to import (e.g., missing or moved files).
+# The script identifies these stuck queue items and automatically deletes them from the queue using:
+#   DELETE /api/v3/queue/{id}
+#
+# ⚠️ Deletion is ENABLED by default. To disable it, comment out the deletion lines.
+#
+# Requirements:
+#   - bash
+#   - curl
+#   - jq
+#
+# Usage:
+#   - Configure SONARR_URL and API_KEY below
+#   - Run manually: `bash clear_queue.sh`
+#   - Run manually: `bash clear_queue.sh --dry-run` to perform a dry run
+#   - Or schedule with cron to run automatically
+#
 
 # Sonarr settings
 SONARR_URL="http://localhost:8989"
 API_KEY="key"
 
+# Default mode is delete (not dry-run)
+DRY_RUN=false
+
 # Function to fetch the queue
 fetch_queue() {
   curl -s -H "X-Api-Key: $API_KEY" "$SONARR_URL/api/v3/queue"
 }
+
+# Parse arguments
+for arg in "$@"; do
+  case $arg in
+    --dry-run)
+      DRY_RUN=true
+      ;;
+    *)
+      # Unknown arguments
+      echo "Unknown argument: $arg"
+      exit 1
+      ;;
+  esac
+done
 
 # Fetch queue
 queue=$(fetch_queue)
@@ -39,9 +83,14 @@ echo "$queue" | jq -c '.records[]' | while read -r item; do
     echo "  Message: $status_message"
     echo ""
 
-    # Optional: uncomment the line below to automatically delete the stuck queue item
-    echo "Deleting stuck item ID: $id..."
-    response=$(curl -s -w "%{http_code}" -o /dev/null -X DELETE -H "X-Api-Key: $API_KEY" "$SONARR_URL/api/v3/queue/$id")
-    echo "Response code: $response"
+    if [ "$DRY_RUN" = true ]; then
+      # In dry-run mode, just print what would be deleted
+      echo "This item would be deleted in delete mode."
+    else
+      # In delete mode, actually delete the item
+      echo "Deleting stuck item ID: $id..."
+      response=$(curl -s -w "%{http_code}" -o /dev/null -X DELETE -H "X-Api-Key: $API_KEY" "$SONARR_URL/api/v3/queue/$id")
+      echo "Response code: $response"
+    fi
   fi
 done
