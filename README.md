@@ -11,11 +11,11 @@ A collection of scripts related to the *arrs (Radarr, Sonarr, etc.), Usenet (SAB
 Generates a list of recently released media (last 30 days) and formats it for [Jellyfin Media Bar](https://github.com/MakD/Jellyfin-Media-Bar).  
 Script: [`create_featured_list.sh`](./jellyfin/Featured%20Content/create_featured_list.sh)
 
-### 🔹 [Sonarr](./sonarr/README.md)
+### 🔹 [Sonarr](./sonarr/)
 
 Scripts related to managing Sonarr, like removing stuck download queues.
 
-### 🔹 [Radarr](./sonarr/README.md)
+### 🔹 [Radarr](./radarr/)
 
 Scripts related to managing Radarr, like removing stuck download queues.
 
