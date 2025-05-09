@@ -8,7 +8,7 @@ A collection of scripts related to the *arrs (Radarr, Sonarr, etc.), Usenet (SAB
 
 ### 🔹 [Jellyfin - Featured Content](./jellyfin/Featured%20Content/README.md)
 
-Generates a list of recently released media (last 30 days) and formats it for [Jellyfin Media Bar](https://github.com/MakD/Jellyfin-Media-Bar).  
+This script queries the Jellyfin server for movies and TV episodes released in the past 30 days and saves their unique IDs to the specified file for [Jellyfin Media Bar](https://github.com/MakD/Jellyfin-Media-Bar).  
 Script: [`create_featured_list.sh`](./jellyfin/Featured%20Content/)
 
 #### Example:
