@@ -18,6 +18,13 @@
 
 SONARR_URL="http://localhost:8989"
 API_KEY="key"
+DRY_RUN=false
+
+# Check for --dry-run flag
+if [[ "$1" == "--dry-run" ]]; then
+  DRY_RUN=true
+  echo "🧪 Running in DRY RUN mode – no changes will be made."
+fi
 
 trigger_import() {
   local path="$1"
@@ -41,57 +48,62 @@ trigger_import() {
     series_id=$(echo "$candidate" | jq -r '.seriesId')
     rejection=$(echo "$candidate" | jq -r '.rejections[0].reason // empty')
 
-   has_file=$(echo "$candidate" | jq -r '.episodes[0].hasFile')
-   if [[ "$has_file" == "true" ]]; then
-     echo "ℹ️  Skipping: Episode already has file."
-     continue
-   fi
+    has_file=$(echo "$candidate" | jq -r '.episodes[0].hasFile')
+    if [[ "$has_file" == "true" ]]; then
+      echo "ℹ️  Skipping: Episode already has file."
+      continue
+    fi
 
-    echo "Importing file: $relative_path"
+    echo "📄 Candidate file: $relative_path"
 
     if [[ "$rejection" == "Not a Custom Format upgrade"* && "$episode_file_id" != "0" ]]; then
-      echo "⚠️  Existing episode file is blocking import due to CF score. Deleting episode file ID: $episode_file_id"
-
-      delete_response=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
-        -H "X-Api-Key: $API_KEY" \
-        "$SONARR_URL/api/v3/episodefile/$episode_file_id")
-
-      if [[ "$delete_response" != "200" ]]; then
-        echo "❌ Failed to delete episode file. HTTP $delete_response"
-        continue
+      echo "⚠️  Existing episode file is blocking import due to CF score."
+      if [[ "$DRY_RUN" == true ]]; then
+        echo "🧪 DRY RUN: Would delete episode file ID: $episode_file_id"
       else
-        echo "✅ Episode file deleted."
+        delete_response=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+          -H "X-Api-Key: $API_KEY" \
+          "$SONARR_URL/api/v3/episodefile/$episode_file_id")
+
+        if [[ "$delete_response" != "200" ]]; then
+          echo "❌ Failed to delete episode file. HTTP $delete_response"
+          continue
+        else
+          echo "✅ Episode file deleted."
+        fi
       fi
     fi
 
-    # Retry fetching candidates after deletion
-    retry_import_candidates=$(curl -s -H "X-Api-Key: $API_KEY" "$SONARR_URL/api/v3/manualimport?folder=$encoded_path&downloadedEpisodesOnly=true")
+    if [[ "$DRY_RUN" == true ]]; then
+      echo "🧪 DRY RUN: Would POST import for: $relative_path"
+    else
+      retry_import_candidates=$(curl -s -H "X-Api-Key: $API_KEY" "$SONARR_URL/api/v3/manualimport?folder=$encoded_path&downloadedEpisodesOnly=true")
 
-    updated_payload=$(echo "$retry_import_candidates" | jq -c --arg rel "$relative_path" 'map(select(.relativePath == $rel)) | map({path: .path, relativePath: .relativePath, import: true})')
+      updated_payload=$(echo "$retry_import_candidates" | jq -c --arg rel "$relative_path" 'map(select(.relativePath == $rel)) | map({path: .path, relativePath: .relativePath, import: true})')
 
-    response=$(curl -s -w "\nHTTP Code: %{http_code}\n" -X POST \
-      -H "Content-Type: application/json" \
-      -H "X-Api-Key: $API_KEY" \
-      -d "$updated_payload" \
-      "$SONARR_URL/api/v3/manualimport")
+      response=$(curl -s -w "\nHTTP Code: %{http_code}\n" -X POST \
+        -H "Content-Type: application/json" \
+        -H "X-Api-Key: $API_KEY" \
+        -d "$updated_payload" \
+        "$SONARR_URL/api/v3/manualimport")
 
-    echo "$response"
-    sleep 1  # avoid hitting the API too rapidly
+      echo "$response"
+      sleep 1
+    fi
   done
 }
 
+# Connectivity check
 ping_test=$(curl -s -o /dev/null -w "%{http_code}" -H "X-Api-Key: $API_KEY" "$SONARR_URL/api/v3/system/status")
 if [[ "$ping_test" != "200" ]]; then
   echo "❌ Unable to connect to Sonarr. Check URL/API key."
   exit 1
 fi
 
-
-# Fetch the queue
 queue=$(curl -s -H "X-Api-Key: $API_KEY" "$SONARR_URL/api/v3/queue")
 
 if [[ -z "$queue" || "$queue" == "null" ]]; then
-  echo "Failed to fetch the queue or the queue is empty."
+  echo "❌ Failed to fetch the queue or the queue is empty."
   exit 1
 fi
 
@@ -106,7 +118,6 @@ while read -r item; do
   download_state=$(echo "$item" | jq -r '.trackedDownloadState')
   output_path=$(echo "$item" | jq -r '.outputPath')
   status_message=$(echo "$item" | jq -r '.statusMessages[]?.messages[]? // empty' | head -n 1)
-
 
   if [[ "$status" == "completed" && "$timeleft" == "00:00:00" && "$download_state" == "importPending" ]]; then
     FOUND_ANY=true
