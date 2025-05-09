@@ -27,7 +27,7 @@ These are **stuck in the queue** and can optionally be **automatically removed**
 
 ```bash
 git clone https://github.com/darkatek7/arr-scripts.git
-cd sonarr
+cd sonarr/clear_queue
 ```
 
 ### 2. Configure the Script
