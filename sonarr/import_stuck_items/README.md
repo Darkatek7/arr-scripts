@@ -87,6 +87,7 @@ You’ll see output like:
 * Uses Sonarr’s internal manual import logic
 * Output formatted for readability
 * Adds a retry after deletion to allow Sonarr to re-scan
+* Run this script via a crontab scheduled to run every 1 hour and you won't have to worry about stuck downloads again.
 
 ---
 
