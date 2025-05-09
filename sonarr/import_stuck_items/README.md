@@ -92,7 +92,7 @@ You’ll see output like:
 
 ## ⚠️ Notes
 * Use responsibly: the script will delete episode files if Sonarr reports they are blocking an import.
-* Always test with a dry run or on non-critical files first.
+* Always test with a dry run by adding the ```bash import_stuck_items.sh --dry-run``` argument first.
 * Designed for Sonarr v3 API.
 
 ---
