@@ -39,7 +39,7 @@ Make sure the following are installed on the system running this script:
 
    ```bash
    git clone https://github.com/darkatek7/arr-scripts.git
-   cd sonarr-import-fixer
+   cd sonarr/import_stuck_items
 
 2. **Edit the script**
 
