@@ -17,10 +17,10 @@ Script: [`create_featured_list.sh`](./jellyfin/Featured%20Content/create_feature
 
 ### 🔹 [Sonarr](./sonarr/)
 
-Script related to managing Sonarr, removing stuck download queues.  
+The script scans the Sonarr download queue for items stuck after failed imports (e.g., "No files found") and deletes them automatically.  
 Script: [`clear_queue.sh`](./sonarr/clear_queue/)
 
-Script related to managing Sonarr, importing stuck downloads.  
+The script scans the Sonarr queue for stuck downloads marked as completed but not imported, and attempts to manually import them using the API.  
 Script: [`import_stuck_items.sh`](./sonarr/import_stuck_items/)
 
 
