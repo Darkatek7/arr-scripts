@@ -27,7 +27,7 @@ These are **stuck in the queue** and can optionally be **automatically removed**
 
 ```bash
 git clone https://github.com/darkatek7/arr-scripts.git
-cd radarr
+cd radarr/clear_queue
 ```
 
 ### 2. Configure the Script
