@@ -27,7 +27,10 @@ Script: [`import_stuck_items.sh`](./sonarr/import_stuck_items/)
 ### 🔹 [Radarr](./radarr/)
 
 The script scans the Radarr download queue for items stuck after failed imports (e.g., "No files found") and deletes them automatically.  
-Script: [`clear_queue.sh`](./radarr/clear_queue/)
+Script: [`clear_queue.sh`](./radarr/clear_queue/)  
+
+The script scans the Radd queue for stuck downloads marked as completed but not imported, and attempts to manually import them using the API.  
+Script: [`import_stuck_items.sh`](./radarr/import_stuck_items/)
 
 ---
 
