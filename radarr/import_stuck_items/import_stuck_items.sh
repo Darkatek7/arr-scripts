@@ -18,6 +18,9 @@ RADARR_URL="http://localhost:7878"
 API_KEY="key"
 DRY_RUN=false
 
+# Remove trailing slash if present
+RADARR_URL="${RADARR_URL%/}"
+
 # Check for --dry-run flag
 if [[ "$1" == "--dry-run" ]]; then
   DRY_RUN=true
@@ -116,7 +119,7 @@ while read -r item; do
   output_path=$(echo "$item" | jq -r '.outputPath')
   status_message=$(echo "$item" | jq -r '.statusMessages[]?.messages[]? // empty' | head -n 1)
 
-  if [[ "$status" == "completed" && "$timeleft" == "00:00:00" && "$download_state" == "importPending" ]]; then
+  if [[ "$status" == "completed" && "$timeleft" == "00:00:00" && ("$download_state" == "importPending" || "$download_state" == "importBlocked") ]]; then
     FOUND_ANY=true
     echo "⚠️  Importable item possibly stuck:"
     echo "  ID: $id"
