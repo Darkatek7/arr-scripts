@@ -20,6 +20,9 @@ SONARR_URL="http://localhost:8989"
 API_KEY="key"
 DRY_RUN=false
 
+# Remove trailing slash if present
+SONARR_URL="${SONARR_URL%/}"
+
 # Check for --dry-run flag
 if [[ "$1" == "--dry-run" ]]; then
   DRY_RUN=true
@@ -119,16 +122,33 @@ while read -r item; do
   output_path=$(echo "$item" | jq -r '.outputPath')
   status_message=$(echo "$item" | jq -r '.statusMessages[]?.messages[]? // empty' | head -n 1)
 
-  if [[ "$status" == "completed" && "$timeleft" == "00:00:00" && "$download_state" == "importPending" ]]; then
-    FOUND_ANY=true
-    echo "⚠️  Importable item possibly stuck:"
-    echo "  ID: $id"
-    echo "  Title: $title"
-    echo "  Output Path: $output_path"
-    echo "  Message: ${status_message:-None}"
-    echo ""
-    trigger_import "$output_path"
-  fi
+  if [[ "$status" == "completed" && "$timeleft" == "00:00:00" && "$download_state" == "importBlocked" ]]; then
+  FOUND_ANY=true
+  echo "🗑 Import is blocked. Deleting download: $title"
+    if [[ "$DRY_RUN" == true ]]; then
+      echo "🧪 DRY RUN: Would delete download ID: $id"
+    else
+      delete_response=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+        -H "X-Api-Key: $API_KEY" \
+        "$SONARR_URL/api/v3/queue/$id")
+      if [[ "$delete_response" != "200" ]]; then
+        echo "❌ Failed to delete stuck download. HTTP $delete_response"
+      else
+        echo "✅ Deleted stuck download."
+      fi
+    fi
+
+elif [[ "$status" == "completed" && "$timeleft" == "00:00:00" && "$download_state" == "importPending" ]]; then
+  FOUND_ANY=true
+  echo "⚠️  Importable item possibly stuck:"
+  echo "  ID: $id"
+  echo "  Title: $title"
+  echo "  Output Path: $output_path"
+  echo "  Message: ${status_message:-None}"
+  echo ""
+  trigger_import "$output_path"
+fi
+
 done < <(echo "$queue" | jq -c '.records[]')
 
 if [ "$FOUND_ANY" = false ]; then
